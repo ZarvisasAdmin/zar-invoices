@@ -134,6 +134,14 @@ table.inv-atbl td{padding:6px 10px;font-size:11px;border:1px solid var(--border)
 @keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
 .actions{display:flex;gap:5px;flex-wrap:wrap;}
 .empty{text-align:center;padding:40px;color:var(--ink-light);}
+.dash-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:8px;}
+.dash-filter-group{display:flex;gap:6px;flex-wrap:wrap;}
+.filter-btn{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--ink-mid);transition:all 0.18s;}
+.filter-btn:hover{border-color:var(--gold);color:var(--gold);}
+.filter-btn.active{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+.custom-range{display:flex;gap:8px;align-items:center;}
+.dash-period-label{font-size:12px;color:var(--ink-light);margin-bottom:18px;font-style:italic;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
 @media print{
   body>*:not(#print-frame){display:none!important;}
   #print-frame{display:block!important;font-family:"DM Sans",sans-serif;padding:36px;}
@@ -202,15 +210,31 @@ table.inv-atbl td{padding:6px 10px;font-size:11px;border:1px solid var(--border)
       </div>
     </div>
     <div class="page active" id="page-dash">
+      <div class="dash-toolbar">
+        <div class="dash-filter-group">
+          <button class="filter-btn active" data-filter="all">All Time</button>
+          <button class="filter-btn" data-filter="current">Current Year (2026)</button>
+          <button class="filter-btn" data-filter="previous">Previous Year (2025)</button>
+          <button class="filter-btn" data-filter="custom">Custom</button>
+        </div>
+        <div class="custom-range" id="custom-range" style="display:none">
+          <input type="number" id="custom-year" placeholder="Year e.g. 2024" min="2020" max="2030" style="width:160px">
+          <button class="filter-btn active" id="apply-custom">Apply</button>
+        </div>
+      </div>
+      <div class="dash-period-label" id="dash-period-label">Showing: All Time</div>
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-label">Total Invoices</div><div class="stat-value" id="stat-total">-</div></div>
         <div class="stat-card"><div class="stat-label">Total Billed</div><div class="stat-value gold" id="stat-billed">-</div></div>
-        <div class="stat-card"><div class="stat-label">Clients</div><div class="stat-value" id="stat-clients">-</div></div>
+        <div class="stat-card"><div class="stat-label">Paid</div><div class="stat-value" id="stat-paid">-</div></div>
+        <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value gold" id="stat-outstanding">-</div></div>
+        <div class="stat-card"><div class="stat-label">Draft</div><div class="stat-value" id="stat-draft">-</div></div>
+        <div class="stat-card"><div class="stat-label">Unique Clients</div><div class="stat-value" id="stat-clients">-</div></div>
       </div>
       <div class="section-title">Recent Invoices</div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Invoice #</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody id="tb-dash"><tr><td colspan="6" style="text-align:center;padding:30px;color:#8C7B60">Loading...</td></tr></tbody>
+        <thead><tr><th>Invoice #</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="tb-dash"><tr><td colspan="5" style="text-align:center;padding:30px;color:#8C7B60">Loading...</td></tr></tbody>
       </table></div>
     </div>
     <div class="page" id="page-new">
@@ -594,13 +618,59 @@ function bindTb(id) {
   });
 }
 
+var dashFilter = 'all';
+var dashCustomYear = null;
+
+function getFilteredDb() {
+  if (dashFilter === 'all') return db;
+  var now = new Date();
+  var yr = dashFilter === 'current' ? now.getFullYear()
+          : dashFilter === 'previous' ? now.getFullYear() - 1
+          : dashCustomYear;
+  if (!yr) return db;
+  return db.filter(function(r) {
+    if (!r.date) return false;
+    var y = parseInt(r.date.split('-')[0]);
+    return y === yr;
+  });
+}
+
 function renderDash() {
-  g('stat-total').textContent=db.length;
-  g('stat-billed').textContent=fmt(db.reduce(function(s,r){return s+(r.total||0);},0));
-  var cn={}; db.forEach(function(r){if(r.clientName)cn[r.clientName]=1;});
-  g('stat-clients').textContent=Object.keys(cn).length;
-  var tb=g('tb-dash');
-  tb.innerHTML=db.length?db.slice(0,10).map(rowH).join(''):'<tr><td colspan="6" class="empty">No invoices yet.</td></tr>';
+  var filtered = getFilteredDb();
+  var total = filtered.length;
+  var billed = filtered.reduce(function(s,r){return s+(r.total||0);},0);
+  var paid = filtered.filter(function(r){return r.status==='Paid';}).reduce(function(s,r){return s+(r.total||0);},0);
+  var outstanding = filtered.filter(function(r){return r.status!=='Paid';}).reduce(function(s,r){return s+(r.total||0);},0);
+  var draft = filtered.filter(function(r){return r.status==='Draft';}).length;
+  var cn={}; filtered.forEach(function(r){if(r.clientName)cn[r.clientName]=1;});
+
+  g('stat-total').textContent = total;
+  g('stat-billed').textContent = fmt(billed);
+  g('stat-paid').textContent = fmt(paid);
+  g('stat-outstanding').textContent = fmt(outstanding);
+  g('stat-draft').textContent = draft;
+  g('stat-clients').textContent = Object.keys(cn).length;
+
+  var now = new Date();
+  var label = dashFilter === 'all' ? 'All Time'
+    : dashFilter === 'current' ? 'Financial Year ' + now.getFullYear() + ' (Jan-Dec)'
+    : dashFilter === 'previous' ? 'Financial Year ' + (now.getFullYear()-1) + ' (Jan-Dec)'
+    : dashCustomYear ? 'Financial Year ' + dashCustomYear + ' (Jan-Dec)' : 'All Time';
+  g('dash-period-label').textContent = 'Showing: ' + label;
+
+  var tb = g('tb-dash');
+  // Dashboard table - display only, no actions
+  var rows = filtered.slice(0,15).map(function(inv) {
+    var bc=inv.status==='Paid'?'badge-paid':inv.status==='Sent'?'badge-sent':'badge-draft';
+    return '<tr>' +
+      '<td style="font-weight:600">'+(inv.number||'')+'</td>' +
+      '<td>'+(inv.clientName||'')+'</td>' +
+      '<td>'+fmtD(inv.date)+'</td>' +
+      '<td>'+fmt(inv.total)+'</td>' +
+      '<td><span class="badge '+bc+'">'+(inv.status||'Draft')+'</span></td>' +
+    '</tr>';
+  });
+  tb.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="5" class="empty">No invoices for this period.</td></tr>';
 }
 
 function renderAll() {
@@ -683,6 +753,31 @@ document.getElementById('preview-btn').addEventListener('click', function(){
 document.getElementById('print-btn').addEventListener('click', printInv);
 document.getElementById('close-prev').addEventListener('click', function(){ g('prev-modal').classList.remove('open'); });
 bindTb('tb-dash'); bindTb('tb-all');
+
+// Dashboard filter buttons
+document.querySelectorAll('.filter-btn[data-filter]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.filter-btn[data-filter]').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    dashFilter = btn.dataset.filter;
+    if (dashFilter === 'custom') {
+      g('custom-range').style.display = 'flex';
+    } else {
+      g('custom-range').style.display = 'none';
+      renderDash();
+    }
+  });
+});
+
+g('apply-custom').addEventListener('click', function() {
+  var yr = parseInt(g('custom-year').value);
+  if (yr >= 2020 && yr <= 2035) {
+    dashCustomYear = yr;
+    renderDash();
+  } else {
+    toast('Please enter a valid year (2020-2035)', 'err');
+  }
+});
 
 var tb=g('topbar-btns'); tb.innerHTML='';
 var nb=document.createElement('button'); nb.className='btn btn-primary btn-sm'; nb.textContent='+ New Invoice';
