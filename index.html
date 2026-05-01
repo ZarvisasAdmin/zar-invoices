@@ -190,7 +190,7 @@ textarea:focus{border-color:var(--gold);background:var(--white);}
 
 <div id="login-screen" class="login-screen">
   <div class="login-card">
-    <div class="login-logo">ZAR Visas</div>
+    <img src="https://hippotree.co.za/ZarvisasLogo2.png" alt="ZAR Visas" style="height:90px;width:90px;object-fit:contain;margin-bottom:8px;"><div class="login-logo">ZAR Visas</div>
     <div class="login-sub">Invoice Manager</div>
     <div class="login-desc">Sign in with your Microsoft 365 account to access invoices stored in SharePoint.</div>
     <button class="btn-ms" id="signin-btn">
@@ -203,7 +203,7 @@ textarea:focus{border-color:var(--gold);background:var(--white);}
 
 <div id="app-shell" class="app-shell" style="display:none">
   <aside class="sidebar">
-    <div class="logo-area"><div class="logo-mark">ZAR Visas</div><div class="logo-sub">Invoice Manager</div></div>
+    <div class="logo-area" style="display:flex;align-items:center;gap:10px;padding:16px 20px 20px;"><img src="https://hippotree.co.za/ZarvisasLogo2.png" alt="ZAR Visas" style="height:42px;width:42px;object-fit:contain;"><div><div class="logo-mark">ZAR Visas</div><div class="logo-sub">Invoice Manager</div></div></div>
     <nav class="nav">
       <button class="nav-item active" id="nav-dash">&#128202; Dashboard</button>
       <button class="nav-item" id="nav-new">&#9998; New Invoice</button>
@@ -444,6 +444,28 @@ textarea:focus{border-color:var(--gold);background:var(--white);}
       </div>
     </div>
     <div class="inv-wrap" id="inv-content"></div>
+  </div>
+</div>
+
+
+<div class="modal" id="sp-save-modal">
+  <div class="modal-inner" style="max-width:560px;">
+    <div class="modal-bar">
+      <div class="modal-title">💾 Save Invoice to SharePoint</div>
+      <button class="close-btn" id="close-sp-save">&#10005;</button>
+    </div>
+    <div style="padding:20px;">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--text-muted);">Select a folder in your SharePoint environment to save this invoice as an HTML file.</p>
+      <div id="sp-breadcrumb" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;padding:6px 10px;background:var(--bg-card);border-radius:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;"></div>
+      <div id="sp-folder-list" style="border:1px solid var(--border);border-radius:8px;max-height:300px;overflow-y:auto;background:var(--bg-card);">
+        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Loading libraries...</div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;align-items:center;">
+        <span id="sp-save-status" style="font-size:12px;color:var(--text-muted);flex:1;"></span>
+        <button class="btn btn-outline" id="close-sp-save-2">Cancel</button>
+        <button class="btn btn-primary" id="sp-save-here-btn" disabled>Save Here</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -729,6 +751,8 @@ function rowH(inv) {
     '<td><span class="badge '+bc+'">'+(inv.status||'Draft')+'</span></td>' +
     '<td><div class="actions">' +
       '<button class="btn btn-outline btn-sm" data-act="prev" data-id="'+inv.id+'">Preview</button>' +
+      '<button class="btn btn-outline btn-sm" data-act="reprint" data-id="'+inv.id+'">🖨 Reprint</button>' +
+      '<button class="btn btn-outline btn-sm" data-act="savesp" data-id="'+inv.id+'">💾 Save to SP</button>' +
       '<button class="btn btn-outline btn-sm" data-act="edit" data-id="'+inv.id+'">Edit</button>' +
       (inv.status!=='Paid'?'<button class="btn btn-outline btn-sm" data-act="paid" data-id="'+inv.id+'">Paid</button>':'') +
       '<button class="btn btn-danger btn-sm" data-act="del" data-id="'+inv.id+'">Delete</button>' +
@@ -741,6 +765,8 @@ function bindTb(id) {
     var act=b.dataset.act, sid=b.dataset.id;
     var inv=db.find(function(r){return r.id==sid;});
     if(act==='prev'&&inv){renderPrev(inv);g('prev-modal').classList.add('open');}
+    else if(act==='reprint'&&inv){renderPrev(inv);g('prev-modal').classList.add('open');setTimeout(function(){printInv();},400);}
+    else if(act==='savesp'&&inv){renderPrev(inv);openSpSave(inv);}
     else if(act==='edit'&&inv) loadToForm(inv);
     else if(act==='paid') markPaid(sid);
     else if(act==='del') delRec(sid);
@@ -820,7 +846,7 @@ function renderPrev(inv) {
   var lH=lines.map(function(l){return '<tr><td>'+l.desc+'</td><td style="text-align:center">'+l.qty+'</td><td style="text-align:right">'+fmt(l.rate)+'</td><td style="text-align:right">'+fmt(l.amount)+'</td></tr>';}).join('');
   var aH=apps.length?'<div class="inv-apps"><div class="inv-lbl">Visa Applicants</div><table class="inv-atbl"><thead><tr><th>First Name</th><th>Last Name</th><th>Destination</th></tr></thead><tbody>'+apps.map(function(a){return '<tr><td>'+(a.first||'')+'</td><td>'+(a.last||'')+'</td><td>'+(a.dest||'')+'</td></tr>';}).join('')+'</tbody></table></div>':'';
   g('inv-content').innerHTML=
-    '<div class="inv-hdr"><div><div class="inv-co">ZAR VISAS CONCIERGE (Pty) Ltd</div><div class="inv-reg">Company Reg No. 2022/472142/07</div></div>' +
+    '<div class="inv-hdr"><div style="display:flex;align-items:center;gap:14px"><img src="https://hippotree.co.za/ZarvisasLogo2.png" alt="ZAR Visas" style="height:80px;width:80px;object-fit:contain;" crossorigin="anonymous"><div><div class="inv-co">ZAR VISAS CONCIERGE (Pty) Ltd</div><div class="inv-reg">Company Reg No. 2022/472142/07</div></div></div>' +
     '<div style="text-align:right"><div class="inv-badge">INVOICE</div><div class="inv-meta"><div><strong>Invoice No:</strong> '+(inv.number||'')+'</div><div><strong>Date:</strong> '+fmtD(inv.date)+'</div></div></div></div>' +
     '<hr class="inv-hr">' +
     '<div class="inv-bc"><div><div class="inv-lbl">Bill To</div><div class="inv-name">'+(inv.clientName||'')+'</div>' +
@@ -1192,6 +1218,189 @@ var nb=document.createElement('button'); nb.className='btn btn-primary btn-sm'; 
 nb.addEventListener('click',newFlow); tb.appendChild(nb);
 
 init();
+
+// ── SHAREPOINT FOLDER BROWSER & SAVE ──
+var spSaveInv = null;
+var spCurrentPath = '';  // e.g. "/sites/Zarvisas/Shared Documents"
+var spNavStack = [];     // breadcrumb stack [{name, path}]
+
+function openSpSave(inv) {
+  spSaveInv = inv;
+  spCurrentPath = '';
+  spNavStack = [];
+  g('sp-save-here-btn').disabled = true;
+  g('sp-save-status').textContent = '';
+  g('sp-save-modal').classList.add('open');
+  spLoadLibraries();
+}
+
+async function spGetToken() {
+  try {
+    var acct = msalApp.getAllAccounts()[0];
+    if (!acct) return null;
+    var res = await msalApp.acquireTokenSilent({
+      scopes: ['https://zarvisas.sharepoint.com/AllSites.Write'],
+      account: acct
+    });
+    return res.accessToken;
+  } catch(e) { return null; }
+}
+
+async function spLoadLibraries() {
+  g('sp-folder-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Loading document libraries...</div>';
+  g('sp-save-here-btn').disabled = true;
+  spRenderBreadcrumb();
+  var token = await spGetToken();
+  if (!token) { g('sp-folder-list').innerHTML = '<div style="padding:16px;color:#c0392b;font-size:13px;">⚠️ Not authenticated. Please log in first.</div>'; return; }
+  try {
+    var res = await fetch(SP_SITE + "/_api/web/lists?$filter=BaseTemplate eq 101 and Hidden eq false&$select=Title,RootFolder/ServerRelativeUrl&$expand=RootFolder", {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json;odata=verbose' }
+    });
+    var data = await res.json();
+    var libs = (data.d && data.d.results) ? data.d.results : [];
+    if (!libs.length) { g('sp-folder-list').innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;">No document libraries found.</div>'; return; }
+    var html = '';
+    libs.forEach(function(lib) {
+      var path = lib.RootFolder.ServerRelativeUrl;
+      html += '<div class="sp-folder-item" data-path="'+path+'" data-name="'+lib.Title+'" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);font-size:13px;">' +
+        '<span style="font-size:18px;">📚</span><span>'+lib.Title+'</span>' +
+        '<span style="margin-left:auto;color:var(--text-muted);font-size:11px;">▶</span></div>';
+    });
+    g('sp-folder-list').innerHTML = html;
+    g('sp-folder-list').querySelectorAll('.sp-folder-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        spNavStack = [{name: 'Libraries', action: 'libs'}];
+        spNavStack.push({name: el.dataset.name, path: el.dataset.path});
+        spCurrentPath = el.dataset.path;
+        g('sp-save-here-btn').disabled = false;
+        spLoadFolders(el.dataset.path, el.dataset.name);
+      });
+      el.addEventListener('mouseenter', function() { this.style.background = 'var(--bg-hover,#f5f0e8)'; });
+      el.addEventListener('mouseleave', function() { this.style.background = ''; });
+    });
+  } catch(e) {
+    g('sp-folder-list').innerHTML = '<div style="padding:16px;color:#c0392b;font-size:13px;">⚠️ Error loading libraries: ' + e.message + '</div>';
+  }
+}
+
+async function spLoadFolders(serverRelPath, name) {
+  g('sp-folder-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Loading folders...</div>';
+  g('sp-save-here-btn').disabled = false;
+  spCurrentPath = serverRelPath;
+  spRenderBreadcrumb();
+  var token = await spGetToken();
+  if (!token) return;
+  try {
+    var url = SP_SITE + "/_api/web/GetFolderByServerRelativeUrl('" + encodeURIComponent(serverRelPath) + "')/Folders?$select=Name,ServerRelativeUrl&$filter=Name ne 'Forms'";
+    var res = await fetch(url, {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json;odata=verbose' }
+    });
+    var data = await res.json();
+    var folders = (data.d && data.d.results) ? data.d.results : [];
+    var html = '';
+    if (!folders.length) {
+      html = '<div style="padding:14px 16px;color:var(--text-muted);font-size:13px;font-style:italic;">No subfolders — save directly here.</div>';
+    } else {
+      folders.forEach(function(f) {
+        html += '<div class="sp-folder-item" data-path="'+f.ServerRelativeUrl+'" data-name="'+f.Name+'" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);font-size:13px;">' +
+          '<span style="font-size:18px;">📁</span><span>'+f.Name+'</span>' +
+          '<span style="margin-left:auto;color:var(--text-muted);font-size:11px;">▶</span></div>';
+      });
+    }
+    g('sp-folder-list').innerHTML = html;
+    g('sp-folder-list').querySelectorAll('.sp-folder-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        spNavStack.push({name: el.dataset.name, path: el.dataset.path});
+        spCurrentPath = el.dataset.path;
+        spLoadFolders(el.dataset.path, el.dataset.name);
+      });
+      el.addEventListener('mouseenter', function() { this.style.background = 'var(--bg-hover,#f5f0e8)'; });
+      el.addEventListener('mouseleave', function() { this.style.background = ''; });
+    });
+  } catch(e) {
+    g('sp-folder-list').innerHTML = '<div style="padding:16px;color:#c0392b;font-size:13px;">⚠️ ' + e.message + '</div>';
+  }
+}
+
+function spRenderBreadcrumb() {
+  var bc = g('sp-breadcrumb');
+  if (!spNavStack.length) {
+    bc.innerHTML = '<span style="color:var(--text-muted)">📂 Select a location...</span>';
+    return;
+  }
+  var html = '<span style="cursor:pointer;color:var(--gold);" id="sp-bc-root">Libraries</span>';
+  spNavStack.forEach(function(item, i) {
+    if (item.action === 'libs') return;
+    html += ' <span style="color:var(--text-muted)">›</span> ';
+    if (i < spNavStack.length - 1 && item.path) {
+      html += '<span style="cursor:pointer;color:var(--gold);" data-bcpath="'+item.path+'" data-bci="'+i+'">'+item.name+'</span>';
+    } else {
+      html += '<span style="font-weight:600;">'+item.name+'</span>';
+    }
+  });
+  bc.innerHTML = html;
+  var rootEl = g('sp-bc-root');
+  if (rootEl) rootEl.addEventListener('click', function() {
+    spNavStack = [];
+    spCurrentPath = '';
+    g('sp-save-here-btn').disabled = true;
+    spLoadLibraries();
+  });
+  bc.querySelectorAll('[data-bcpath]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var idx = parseInt(el.dataset.bci);
+      spNavStack = spNavStack.slice(0, idx + 1);
+      spCurrentPath = el.dataset.bcpath;
+      spLoadFolders(el.dataset.bcpath, el.textContent);
+    });
+  });
+}
+
+async function spSaveInvoiceHere() {
+  if (!spSaveInv || !spCurrentPath) return;
+  var btn = g('sp-save-here-btn');
+  var status = g('sp-save-status');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  status.textContent = '';
+  var token = await spGetToken();
+  if (!token) { status.textContent = '⚠️ Not authenticated'; btn.disabled = false; btn.textContent = 'Save Here'; return; }
+  // Build the HTML content from the rendered invoice
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ' + (spSaveInv.number||'') + '</title>' +
+    '<style>body{font-family:sans-serif;padding:36px;} ' +
+    document.querySelector('style').textContent + '</style></head><body>' +
+    g('inv-content').innerHTML + '</body></html>';
+  var fileName = 'Invoice-' + (spSaveInv.number || spSaveInv.id) + '-' + (spSaveInv.clientName || 'Client').replace(/[^a-zA-Z0-9]/g,'_') + '.html';
+  var uploadUrl = SP_SITE + "/_api/web/GetFolderByServerRelativeUrl('" + encodeURIComponent(spCurrentPath) + "')/Files/add(url='" + encodeURIComponent(fileName) + "',overwrite=true)";
+  try {
+    var blob = new Blob([htmlContent], {type: 'text/html'});
+    var res = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json;odata=verbose', 'Content-Length': blob.size },
+      body: blob
+    });
+    if (res.ok) {
+      status.textContent = '✅ Saved: ' + fileName;
+      toast('Invoice saved to SharePoint!', 'success');
+      btn.textContent = 'Save Here';
+      btn.disabled = false;
+    } else {
+      var err = await res.json().catch(function(){return {};});
+      status.textContent = '⚠️ ' + ((err.error && err.error.message && err.error.message.value) || 'Upload failed');
+      btn.textContent = 'Save Here';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    status.textContent = '⚠️ ' + e.message;
+    btn.textContent = 'Save Here';
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('close-sp-save').addEventListener('click', function(){ g('sp-save-modal').classList.remove('open'); });
+document.getElementById('close-sp-save-2').addEventListener('click', function(){ g('sp-save-modal').classList.remove('open'); });
+document.getElementById('sp-save-here-btn').addEventListener('click', spSaveInvoiceHere);
+
 </script>
 </body>
 </html>
