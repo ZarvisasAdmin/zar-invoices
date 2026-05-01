@@ -863,13 +863,13 @@ function fromTC(item) {
     date: item.TCDate ? item.TCDate.split('T')[0] : '',
     company: item.BookingCompany || '',
     appName: item.ApplicantName || '',
-    appContact: item.ApplicantContact || '',
+    appContact: item.ApplicantNum ? String(item.ApplicantNum) : '',
     country: item.CountryVisit || '',
-    consultant: item.ContactPerson || '',
-    consultantNum: item.ConsultantNumber || '',
     zarConsultant: item.ZARConsultant || '',
+    consultant: item.field_5 || '',
+    consultantNum: item.ContactPersonNum ? String(item.ContactPersonNum) : '',
     travelDate: item.TravelDate ? item.TravelDate.split('T')[0] : '',
-    passport: item.PassportNumber || '',
+    passport: item.PassportNum || '',
     passportCountry: item.PassportCountry || '',
     passportExpiry: item.PassportExpiry ? item.PassportExpiry.split('T')[0] : '',
     apptDate: item.AppointmentDate ? item.AppointmentDate.split('T')[0] : '',
@@ -880,9 +880,9 @@ function fromTC(item) {
     payDate: item.PaymentDate ? item.PaymentDate.split('T')[0] : '',
     amtCash: item.AmountCash || 0,
     amtYoco: item.AmountYoco || 0,
-    actualIncome: item.ActualIncome || 0,
-    referral: item.ReferralConnection || '',
+    referral: item.ReferralConnection ? String(item.ReferralConnection) : '',
     meetGreet: item.MeetGreetPayment || 0,
+    actualIncome: item.ActualIncome || 0,
     refundDate: item.RefundDate ? item.RefundDate.split('T')[0] : '',
     refundAmt: item.RefundAmount || 0,
     service: item.ServiceRendered || '',
@@ -897,13 +897,13 @@ function toTC(c) {
     TCDate: c.date || null,
     BookingCompany: c.company,
     ApplicantName: c.appName,
-    ApplicantContact: c.appContact,
+    ApplicantNum: c.appContact ? parseFloat(c.appContact) || null : null,
     CountryVisit: c.country,
-    ContactPerson: c.consultant,
-    ConsultantNumber: c.consultantNum,
     ZARConsultant: c.zarConsultant,
+    field_5: c.consultant,
+    ContactPersonNum: c.consultantNum ? parseFloat(c.consultantNum) || null : null,
     TravelDate: c.travelDate || null,
-    PassportNumber: c.passport,
+    PassportNum: c.passport,
     PassportCountry: c.passportCountry,
     PassportExpiry: c.passportExpiry || null,
     AppointmentDate: c.apptDate || null,
@@ -914,9 +914,9 @@ function toTC(c) {
     PaymentDate: c.payDate || null,
     AmountCash: c.amtCash || null,
     AmountYoco: c.amtYoco || null,
-    ActualIncome: c.actualIncome || null,
-    ReferralConnection: c.referral,
+    ReferralConnection: c.referral ? parseFloat(c.referral) || null : null,
     MeetGreetPayment: c.meetGreet || null,
+    ActualIncome: c.actualIncome || null,
     RefundDate: c.refundDate || null,
     RefundAmount: c.refundAmt || null,
     ServiceRendered: c.service,
@@ -928,7 +928,7 @@ function toTC(c) {
 async function loadCases() {
   syncSt('ing');
   try {
-    var url = TC_API + '?$select=Id,Title,TCDate,BookingCompany,ApplicantName,ApplicantContact,CountryVisit,ContactPerson,ConsultantNumber,ZARConsultant,TravelDate,PassportNumber,PassportCountry,PassportExpiry,AppointmentDate,VACName,VisaReference,InvoiceNumber,InvoiceTotal,PaymentDate,AmountCash,AmountYoco,ActualIncome,ReferralConnection,MeetGreetPayment,RefundDate,RefundAmount,ServiceRendered,SpecialObservations,Status&$orderby=Id desc&$top=500';
+    var url = TC_API + '?$select=Id,Title,TCDate,TravelDate,BookingCompany,ApplicantName,ApplicantNum,CountryVisit,ZARConsultant,field_5,ContactPersonNum,PassportNum,PassportCountry,PassportExpiry,AppointmentDate,VACName,VisaReference,InvoiceNumber,InvoiceTotal,PaymentDate,AmountCash,AmountYoco,ReferralConnection,MeetGreetPayment,ActualIncome,RefundDate,RefundAmount,ServiceRendered,SpecialObservations,Status&$orderby=Id desc&$top=500';
     var data = await spGet(url);
     tcDb = (data.value || []).map(fromTC);
     syncSt('ok');
