@@ -53,7 +53,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--ink);m
 .btn:disabled{opacity:0.5;cursor:not-allowed;}
 .page{display:none;padding:28px 30px;}
 .page.active{display:block;}
-.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}@media(max-width:700px){.stats-grid{grid-template-columns:1fr 1fr;}}
 .stat-card{background:var(--white);border-radius:12px;padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);}
 .stat-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-light);margin-bottom:8px;}
 .stat-value{font-family:"Playfair Display",serif;font-size:30px;font-weight:700;color:var(--ink);}
@@ -133,6 +133,21 @@ table.inv-atbl td{padding:6px 10px;font-size:11px;border:1px solid var(--border)
 .toast.err{border-left-color:var(--danger);}
 @keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
 .actions{display:flex;gap:5px;flex-wrap:wrap;}
+.tc-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+#tc-table{min-width:1200px;}
+#tc-table th,#tc-table td{white-space:nowrap;}
+.tc-status{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;}
+.tc-pending{background:#FEF9C3;color:#854D0E;}
+.tc-progress{background:#DBEAFE;color:#1E40AF;}
+.tc-waiting{background:#FEE2E2;color:#991B1B;}
+.tc-booked{background:#E0F2FE;color:#0C4A6E;}
+.tc-submitted{background:#EDE9FE;color:#5B21B6;}
+.tc-approved{background:#D1FAE5;color:#065F46;}
+.tc-rejected{background:#FEE2E2;color:#991B1B;}
+.tc-completed{background:#EAFAF1;color:#27AE60;}
+.tc-cancelled{background:#F3F4F6;color:#6B7280;}
+textarea{padding:8px 11px;border-radius:7px;border:1.5px solid var(--border);font-family:"DM Sans",sans-serif;font-size:13px;color:var(--ink);background:var(--cream);outline:none;width:100%;}
+textarea:focus{border-color:var(--gold);background:var(--white);}
 .empty{text-align:center;padding:40px;color:var(--ink-light);}
 .dash-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:8px;}
 .dash-filter-group{display:flex;gap:6px;flex-wrap:wrap;}
@@ -141,7 +156,7 @@ table.inv-atbl td{padding:6px 10px;font-size:11px;border:1px solid var(--border)
 .filter-btn.active{background:var(--gold);color:var(--ink);border-color:var(--gold);}
 .custom-range{display:flex;gap:8px;align-items:center;}
 .dash-period-label{font-size:12px;color:var(--ink-light);margin-bottom:18px;font-style:italic;}
-.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}@media(max-width:700px){.stats-grid{grid-template-columns:1fr 1fr;}}
 @media print{
   body>*:not(#print-frame){display:none!important;}
   #print-frame{display:block!important;font-family:"DM Sans",sans-serif;padding:36px;}
@@ -194,6 +209,7 @@ table.inv-atbl td{padding:6px 10px;font-size:11px;border:1px solid var(--border)
       <button class="nav-item" id="nav-new">&#9998; New Invoice</button>
       <button class="nav-item" id="nav-all">&#128196; All Invoices</button>
       <button class="nav-item" id="nav-clients">&#128101; Clients</button>
+      <button class="nav-item" id="nav-tracker">&#128203; Case Tracker</button>
     </nav>
     <div class="user-area">
       <div class="user-avatar" id="user-av">Z</div>
@@ -300,11 +316,120 @@ table.inv-atbl td{padding:6px 10px;font-size:11px;border:1px solid var(--border)
         <tbody id="tb-all"><tr><td colspan="6" style="text-align:center;padding:30px;color:#8C7B60">Loading...</td></tr></tbody>
       </table></div>
     </div>
+    <div class="page" id="page-tracker">
+      <div class="tc-toolbar">
+        <input type="text" id="tc-search" placeholder="Search applicant, company, consultant..." style="flex:1;max-width:320px;">
+        <select id="tc-status-filter"><option value="">All Statuses</option></select>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary btn-sm" id="tc-new-btn">+ New Case</button>
+      </div>
+      <div class="table-wrap" style="overflow-x:auto;">
+        <table id="tc-table">
+          <thead><tr>
+            <th>Date</th><th>Booking Company</th><th>Applicant</th><th>Contact</th>
+            <th>Country</th><th>Contact Person</th><th>Travel Date</th><th>Appt Date</th>
+            <th>VAC</th><th>Invoice #</th><th>Total</th><th>Paid</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="tc-tbody"><tr><td colspan="14" style="text-align:center;padding:30px;color:#8C7B60">Loading cases...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="page" id="page-clients">
       <div class="table-wrap"><table>
         <thead><tr><th>Client</th><th>Contact</th><th>Email</th><th>Tel</th><th>Invoices</th><th>Total Billed</th></tr></thead>
         <tbody id="tb-clients"></tbody>
       </table></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="tc-modal">
+  <div class="modal-inner" style="width:920px;max-width:98vw;">
+    <div class="modal-bar">
+      <div class="modal-title" id="tc-modal-title">New Case</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="tc-save-btn">Save Case</button>
+        <button class="close-btn" id="tc-close-btn">&#10005;</button>
+      </div>
+    </div>
+    <div style="padding:24px;overflow-y:auto;max-height:80vh;">
+      <input type="hidden" id="tc-recid">
+
+      <div class="form-card">
+        <div class="form-card-title">Case Details</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input type="date" id="tc-date"></div>
+          <div class="form-group"><label>Status</label>
+            <select id="tc-status">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Awaiting Documents">Awaiting Documents</option>
+              <option value="Appointment Booked">Appointment Booked</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Booking Company</label><input type="text" id="tc-company" placeholder="e.g. Tourvest"></div>
+          <div class="form-group"><label>ZAR Consultant</label><input type="text" id="tc-zarconsultant" placeholder="ZAR staff member"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Applicant Information</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Applicant Name</label><input type="text" id="tc-appname"></div>
+          <div class="form-group"><label>Contact Number</label><input type="text" id="tc-appcontact"></div>
+          <div class="form-group"><label>Country of Visit</label><input type="text" id="tc-country" placeholder="e.g. Egypt, Italy"></div>
+          <div class="form-group"><label>Travel Date</label><input type="date" id="tc-traveldate"></div>
+          <div class="form-group"><label>Passport Number</label><input type="text" id="tc-passport"></div>
+          <div class="form-group"><label>Passport Country</label><input type="text" id="tc-passportcountry"></div>
+          <div class="form-group"><label>Passport Expiry</label><input type="date" id="tc-passportexpiry"></div>
+          <div class="form-group"><label>Appointment Date</label><input type="date" id="tc-apptdate"></div>
+          <div class="form-group"><label>VAC Name</label>
+            <select id="tc-vac">
+              <option value="">Select...</option>
+              <option>VFS</option><option>TLS</option><option>BLS</option><option>EMBA</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Visa Reference</label><input type="text" id="tc-visaref"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Consultant</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Contact Person (Booking Co.)</label><input type="text" id="tc-consultant"></div>
+          <div class="form-group"><label>Contact Person Number</label><input type="text" id="tc-consultantnum"></div>
+          <div class="form-group"><label>Referral Connection</label><input type="text" id="tc-referral"></div>
+          <div class="form-group"><label>Meet &amp; Greet Payment (R)</label><input type="number" id="tc-meetgreet" min="0" step="0.01"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Financial</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Invoice Number</label><input type="text" id="tc-invnum" placeholder="Link to invoice"></div>
+          <div class="form-group"><label>Invoice Total (R)</label><input type="number" id="tc-invtotal" min="0" step="0.01"></div>
+          <div class="form-group"><label>Payment Date</label><input type="date" id="tc-paydate"></div>
+          <div class="form-group"><label>Amount Cash (R)</label><input type="number" id="tc-amtcash" min="0" step="0.01"></div>
+          <div class="form-group"><label>Amount Yoco (R)</label><input type="number" id="tc-amtyoco" min="0" step="0.01"></div>
+          <div class="form-group"><label>Actual Income (R)</label><input type="number" id="tc-actualincome" min="0" step="0.01"></div>
+          <div class="form-group"><label>Refund Date</label><input type="date" id="tc-refunddate"></div>
+          <div class="form-group"><label>Refund Amount (R)</label><input type="number" id="tc-refundamt" min="0" step="0.01"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Service &amp; Notes</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Service Rendered</label><input type="text" id="tc-service" placeholder="e.g. Tourist Visa, Work Permit"></div>
+          <div class="form-group full"><label>Special Observations</label><textarea id="tc-notes" rows="3" style="resize:vertical;"></textarea></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -328,7 +453,11 @@ table.inv-atbl td{padding:6px 10px;font-size:11px;border:1px solid var(--border)
 var TENANT  = '9401d036-3d29-476b-8cae-f8afbb8a1c66';
 var CLIENT  = 'ae176426-be85-4ff3-ae56-732e27e0f4d7';
 var SP_SITE = 'https://zarvisas.sharepoint.com/sites/Zarvisas';
-var SP_LIST = 'ZarInvoices';
+var SP_LIST    = 'ZarInvoices';
+var TC_LIST    = 'TrafficControlList';
+var TC_API     = SP_SITE + "/_api/web/lists/getbytitle('" + TC_LIST + "')/items";
+var STATUS_OPT = ['Pending','In Progress','Awaiting Documents','Appointment Booked','Submitted','Approved','Rejected','Completed','Cancelled'];
+var tcDb = [];
 var SP_API  = SP_SITE + "/_api/web/lists/getbytitle('" + SP_LIST + "')/items";
 var SCOPES  = ['https://zarvisas.sharepoint.com/AllSites.Write'];
 var REDIR   = 'https://zarvisasadmin.github.io/zar-invoices/';
@@ -719,6 +848,245 @@ function printInv() {
   window.print();
 }
 
+
+// ── CASE TRACKER ──
+function tcStatusClass(s) {
+  var m = {'Pending':'tc-pending','In Progress':'tc-progress','Awaiting Documents':'tc-waiting',
+    'Appointment Booked':'tc-booked','Submitted':'tc-submitted','Approved':'tc-approved',
+    'Rejected':'tc-rejected','Completed':'tc-completed','Cancelled':'tc-cancelled'};
+  return m[s] || 'tc-pending';
+}
+
+function fromTC(item) {
+  return {
+    id: item.Id,
+    date: item.TCDate ? item.TCDate.split('T')[0] : '',
+    company: item.BookingCompany || '',
+    appName: item.ApplicantName || '',
+    appContact: item.ApplicantContact || '',
+    country: item.CountryVisit || '',
+    consultant: item.ContactPerson || '',
+    consultantNum: item.ConsultantNumber || '',
+    zarConsultant: item.ZARConsultant || '',
+    travelDate: item.TravelDate ? item.TravelDate.split('T')[0] : '',
+    passport: item.PassportNumber || '',
+    passportCountry: item.PassportCountry || '',
+    passportExpiry: item.PassportExpiry ? item.PassportExpiry.split('T')[0] : '',
+    apptDate: item.AppointmentDate ? item.AppointmentDate.split('T')[0] : '',
+    vac: item.VACName || '',
+    visaRef: item.VisaReference || '',
+    invNum: item.InvoiceNumber || '',
+    invTotal: item.InvoiceTotal || 0,
+    payDate: item.PaymentDate ? item.PaymentDate.split('T')[0] : '',
+    amtCash: item.AmountCash || 0,
+    amtYoco: item.AmountYoco || 0,
+    actualIncome: item.ActualIncome || 0,
+    referral: item.ReferralConnection || '',
+    meetGreet: item.MeetGreetPayment || 0,
+    refundDate: item.RefundDate ? item.RefundDate.split('T')[0] : '',
+    refundAmt: item.RefundAmount || 0,
+    service: item.ServiceRendered || '',
+    notes: item.SpecialObservations || '',
+    status: item.Status || 'Pending'
+  };
+}
+
+function toTC(c) {
+  return {
+    Title: c.appName || c.company || 'Case',
+    TCDate: c.date || null,
+    BookingCompany: c.company,
+    ApplicantName: c.appName,
+    ApplicantContact: c.appContact,
+    CountryVisit: c.country,
+    ContactPerson: c.consultant,
+    ConsultantNumber: c.consultantNum,
+    ZARConsultant: c.zarConsultant,
+    TravelDate: c.travelDate || null,
+    PassportNumber: c.passport,
+    PassportCountry: c.passportCountry,
+    PassportExpiry: c.passportExpiry || null,
+    AppointmentDate: c.apptDate || null,
+    VACName: c.vac,
+    VisaReference: c.visaRef,
+    InvoiceNumber: c.invNum,
+    InvoiceTotal: c.invTotal || null,
+    PaymentDate: c.payDate || null,
+    AmountCash: c.amtCash || null,
+    AmountYoco: c.amtYoco || null,
+    ActualIncome: c.actualIncome || null,
+    ReferralConnection: c.referral,
+    MeetGreetPayment: c.meetGreet || null,
+    RefundDate: c.refundDate || null,
+    RefundAmount: c.refundAmt || null,
+    ServiceRendered: c.service,
+    SpecialObservations: c.notes,
+    Status: c.status
+  };
+}
+
+async function loadCases() {
+  syncSt('ing');
+  try {
+    var url = TC_API + '?$select=Id,Title,TCDate,BookingCompany,ApplicantName,ApplicantContact,CountryVisit,ContactPerson,ConsultantNumber,ZARConsultant,TravelDate,PassportNumber,PassportCountry,PassportExpiry,AppointmentDate,VACName,VisaReference,InvoiceNumber,InvoiceTotal,PaymentDate,AmountCash,AmountYoco,ActualIncome,ReferralConnection,MeetGreetPayment,RefundDate,RefundAmount,ServiceRendered,SpecialObservations,Status&$orderby=Id desc&$top=500';
+    var data = await spGet(url);
+    tcDb = (data.value || []).map(fromTC);
+    syncSt('ok');
+    renderCases();
+  } catch(e) { syncSt('err'); toast('Cases load failed: ' + e.message, 'err'); }
+}
+
+async function saveCase() {
+  var c = collectCase();
+  var sid = g('tc-recid').value;
+  syncSt('ing');
+  g('tc-save-btn').disabled = true;
+  try {
+    var payload = toTC(c);
+    if (sid) {
+      await spPost(TC_API + '(' + sid + ')', payload, 'MERGE');
+      c.id = parseInt(sid);
+      var idx = tcDb.findIndex(function(r){return r.id == sid;});
+      if (idx >= 0) tcDb[idx] = c; else tcDb.unshift(c);
+      toast('Case updated', 'ok');
+    } else {
+      var res = await spPost(TC_API, payload);
+      c.id = res.Id; tcDb.unshift(c);
+      toast('Case saved to SharePoint', 'ok');
+    }
+    syncSt('ok'); g('tc-modal').classList.remove('open');
+    renderCases();
+  } catch(e) { syncSt('err'); toast('Save failed: ' + e.message, 'err'); }
+  finally { g('tc-save-btn').disabled = false; }
+}
+
+async function deleteCase(id) {
+  if (!confirm('Delete this case? Cannot be undone.')) return;
+  syncSt('ing');
+  try {
+    await spDel(TC_API + '(' + id + ')');
+    tcDb = tcDb.filter(function(r){return r.id != id;});
+    syncSt('ok'); toast('Case deleted', 'ok'); renderCases();
+  } catch(e) { syncSt('err'); toast('Delete failed: ' + e.message, 'err'); }
+}
+
+function collectCase() {
+  return {
+    date: g('tc-date').value, company: g('tc-company').value.trim(),
+    appName: g('tc-appname').value.trim(), appContact: g('tc-appcontact').value.trim(),
+    country: g('tc-country').value.trim(), consultant: g('tc-consultant').value.trim(),
+    consultantNum: g('tc-consultantnum').value.trim(), zarConsultant: g('tc-zarconsultant').value.trim(),
+    travelDate: g('tc-traveldate').value, passport: g('tc-passport').value.trim(),
+    passportCountry: g('tc-passportcountry').value.trim(), passportExpiry: g('tc-passportexpiry').value,
+    apptDate: g('tc-apptdate').value, vac: g('tc-vac').value,
+    visaRef: g('tc-visaref').value.trim(), invNum: g('tc-invnum').value.trim(),
+    invTotal: parseFloat(g('tc-invtotal').value) || 0,
+    payDate: g('tc-paydate').value,
+    amtCash: parseFloat(g('tc-amtcash').value) || 0,
+    amtYoco: parseFloat(g('tc-amtyoco').value) || 0,
+    actualIncome: parseFloat(g('tc-actualincome').value) || 0,
+    referral: g('tc-referral').value.trim(),
+    meetGreet: parseFloat(g('tc-meetgreet').value) || 0,
+    refundDate: g('tc-refunddate').value,
+    refundAmt: parseFloat(g('tc-refundamt').value) || 0,
+    service: g('tc-service').value.trim(),
+    notes: g('tc-notes').value.trim(),
+    status: g('tc-status').value
+  };
+}
+
+function loadCaseToForm(c) {
+  g('tc-recid').value = c.id || '';
+  g('tc-date').value = c.date || '';
+  g('tc-company').value = c.company || '';
+  g('tc-appname').value = c.appName || '';
+  g('tc-appcontact').value = c.appContact || '';
+  g('tc-country').value = c.country || '';
+  g('tc-consultant').value = c.consultant || '';
+  g('tc-consultantnum').value = c.consultantNum || '';
+  g('tc-zarconsultant').value = c.zarConsultant || '';
+  g('tc-traveldate').value = c.travelDate || '';
+  g('tc-passport').value = c.passport || '';
+  g('tc-passportcountry').value = c.passportCountry || '';
+  g('tc-passportexpiry').value = c.passportExpiry || '';
+  g('tc-apptdate').value = c.apptDate || '';
+  g('tc-vac').value = c.vac || '';
+  g('tc-visaref').value = c.visaRef || '';
+  g('tc-invnum').value = c.invNum || '';
+  g('tc-invtotal').value = c.invTotal || '';
+  g('tc-paydate').value = c.payDate || '';
+  g('tc-amtcash').value = c.amtCash || '';
+  g('tc-amtyoco').value = c.amtYoco || '';
+  g('tc-actualincome').value = c.actualIncome || '';
+  g('tc-referral').value = c.referral || '';
+  g('tc-meetgreet').value = c.meetGreet || '';
+  g('tc-refunddate').value = c.refundDate || '';
+  g('tc-refundamt').value = c.refundAmt || '';
+  g('tc-service').value = c.service || '';
+  g('tc-notes').value = c.notes || '';
+  g('tc-status').value = c.status || 'Pending';
+  g('tc-modal-title').textContent = 'Edit Case — ' + (c.appName || c.company || '');
+  g('tc-modal').classList.add('open');
+}
+
+function clearCaseForm() {
+  ['tc-recid','tc-date','tc-company','tc-appname','tc-appcontact','tc-country','tc-consultant',
+   'tc-consultantnum','tc-zarconsultant','tc-traveldate','tc-passport','tc-passportcountry',
+   'tc-passportexpiry','tc-apptdate','tc-visaref','tc-invnum','tc-invtotal','tc-paydate',
+   'tc-amtcash','tc-amtyoco','tc-actualincome','tc-referral','tc-meetgreet','tc-refunddate',
+   'tc-refundamt','tc-service','tc-notes'].forEach(function(id){var e=g(id);if(e)e.value='';});
+  g('tc-vac').value = '';
+  g('tc-status').value = 'Pending';
+  g('tc-date').value = new Date().toISOString().split('T')[0];
+  g('tc-modal-title').textContent = 'New Case';
+  g('tc-modal').classList.add('open');
+}
+
+function renderCases() {
+  var search = (g('tc-search').value || '').toLowerCase();
+  var statusFilter = g('tc-status-filter').value;
+  var filtered = tcDb.filter(function(c) {
+    var matchSearch = !search ||
+      (c.appName||'').toLowerCase().includes(search) ||
+      (c.company||'').toLowerCase().includes(search) ||
+      (c.consultant||'').toLowerCase().includes(search) ||
+      (c.zarConsultant||'').toLowerCase().includes(search) ||
+      (c.country||'').toLowerCase().includes(search) ||
+      (c.invNum||'').toLowerCase().includes(search);
+    var matchStatus = !statusFilter || c.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+  var tb = g('tc-tbody');
+  if (!filtered.length) {
+    tb.innerHTML = '<tr><td colspan="14" class="empty">No cases found.</td></tr>';
+    return;
+  }
+  tb.innerHTML = filtered.map(function(c) {
+    var sc = tcStatusClass(c.status);
+    var invoiced = c.invNum ? '<span style="color:var(--success);font-weight:600">Yes ('+c.invNum+')</span>' : '<span style="color:#CCC">No</span>';
+    var paid = c.amtCash || c.amtYoco ? '<span style="color:var(--success);font-weight:600">' + fmt((c.amtCash||0)+(c.amtYoco||0)) + '</span>' : '<span style="color:#CCC">-</span>';
+    return '<tr>' +
+      '<td>' + (fmtD(c.date)||'-') + '</td>' +
+      '<td>' + (c.company||'-') + '</td>' +
+      '<td><strong>' + (c.appName||'-') + '</strong></td>' +
+      '<td>' + (c.appContact||'-') + '</td>' +
+      '<td>' + (c.country||'-') + '</td>' +
+      '<td>' + (c.zarConsultant||c.consultant||'-') + '</td>' +
+      '<td>' + (fmtD(c.travelDate)||'-') + '</td>' +
+      '<td>' + (fmtD(c.apptDate)||'-') + '</td>' +
+      '<td>' + (c.vac||'-') + '</td>' +
+      '<td>' + invoiced + '</td>' +
+      '<td>' + (c.invTotal ? fmt(c.invTotal) : '-') + '</td>' +
+      '<td>' + paid + '</td>' +
+      '<td><span class="tc-status ' + sc + '">' + (c.status||'Pending') + '</span></td>' +
+      '<td><div class="actions">' +
+        '<button class="btn btn-outline btn-sm" data-tact="edit" data-id="'+c.id+'">Edit</button>' +
+        '<button class="btn btn-danger btn-sm" data-tact="del" data-id="'+c.id+'">Delete</button>' +
+      '</div></td>' +
+    '</tr>';
+  }).join('');
+}
+
 document.getElementById('signin-btn').addEventListener('click', async function() {
   var btn=this; btn.disabled=true; btn.textContent='Signing in...';
   try {
@@ -752,7 +1120,47 @@ document.getElementById('preview-btn').addEventListener('click', function(){
 });
 document.getElementById('print-btn').addEventListener('click', printInv);
 document.getElementById('close-prev').addEventListener('click', function(){ g('prev-modal').classList.remove('open'); });
-bindTb('tb-dash'); bindTb('tb-all');
+bindTb('tb-all'); // tb-dash is display only - no actions
+
+// Case Tracker bindings
+document.getElementById('nav-tracker').addEventListener('click', function(){
+  showPage('tracker');
+  if (!tcDb.length) loadCases();
+});
+document.getElementById('tc-new-btn').addEventListener('click', clearCaseForm);
+document.getElementById('tc-save-btn').addEventListener('click', saveCase);
+document.getElementById('tc-close-btn').addEventListener('click', function(){ g('tc-modal').classList.remove('open'); });
+
+document.getElementById('tc-search').addEventListener('input', renderCases);
+document.getElementById('tc-status-filter').addEventListener('change', renderCases);
+
+// Populate status filter dropdown
+STATUS_OPT.forEach(function(s) {
+  var o = document.createElement('option'); o.value = s; o.textContent = s;
+  g('tc-status-filter').appendChild(o);
+});
+
+// Table row actions
+document.getElementById('tc-tbody').addEventListener('click', function(e) {
+  var b = e.target.closest('[data-tact]'); if (!b) return;
+  var act = b.dataset.tact, id = parseInt(b.dataset.id);
+  var c = tcDb.find(function(r){return r.id === id;});
+  if (act === 'edit' && c) loadCaseToForm(c);
+  else if (act === 'del') deleteCase(id);
+});
+
+// Add tracker to showPage titles
+var origShowPage = showPage;
+showPage = function(pg) {
+  origShowPage(pg);
+  if (pg === 'tracker') {
+    g('page-title').textContent = 'Case Tracker';
+    var tb = g('topbar-btns'); tb.innerHTML = '';
+    var b = document.createElement('button'); b.className = 'btn btn-primary btn-sm';
+    b.textContent = '+ New Case'; b.addEventListener('click', clearCaseForm);
+    tb.appendChild(b);
+  }
+};
 
 // Dashboard filter buttons
 document.querySelectorAll('.filter-btn[data-filter]').forEach(function(btn) {
