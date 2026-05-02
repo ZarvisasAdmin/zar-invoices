@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+  <link rel="icon" href="data:,">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZAR Visas Invoice Manager</title>
 <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
@@ -1200,32 +1201,47 @@ init();
 
 
 // ── INVOICE DROPDOWN FOR CASE FORM ──
-function populateInvDropdown() {
+async function populateInvDropdown() {
   var sel = g('tc-invnum');
   if (!sel) return;
   var current = sel.value;
-  sel.innerHTML = '<option value="">— Select Invoice —</option>';
-  // Sort invoices by number descending
-  var sorted = invDb.slice().sort(function(a,b){
-    return (b.number||'').localeCompare(a.number||'', undefined, {numeric:true});
-  });
-  sorted.forEach(function(inv) {
-    if (!inv.number) return;
-    var opt = document.createElement('option');
-    opt.value = inv.number;
-    opt.textContent = inv.number + (inv.clientName ? ' — ' + inv.clientName : '') + (inv.date ? ' (' + fmtD(inv.date) + ')' : '');
-    if (inv.number === current) opt.selected = true;
-    sel.appendChild(opt);
-  });
+  sel.innerHTML = '<option value="">— Loading invoices…</option>';
+
+  // Always fetch fresh from SharePoint ZarInvoices list
+  try {
+    var tok = await getToken();
+    var url = SP_API + '?$select=InvoiceNumber,InvoiceDate,ClientName,Total,Status&$orderby=Id desc&$top=500';
+    var res = await fetch(url, { headers: { Authorization: 'Bearer ' + tok, Accept: 'application/json;odata=verbose' } });
+    var data = await res.json();
+    var items = (data.d && data.d.results) ? data.d.results : [];
+    sel.innerHTML = '<option value="">— Select Invoice —</option>';
+    items.forEach(function(item) {
+      var num = item.InvoiceNumber || item.Title;
+      if (!num) return;
+      var opt = document.createElement('option');
+      opt.value = num;
+      opt.textContent = num +
+        (item.ClientName ? ' — ' + item.ClientName : '') +
+        (item.InvoiceDate ? ' (' + fmtD(item.InvoiceDate.split('T')[0]) + ')' : '') +
+        (item.Status && item.Status !== 'Draft' ? ' [' + item.Status + ']' : '');
+      // Store total on option for auto-fill
+      opt.dataset.total = item.Total || '';
+      if (num === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    sel.innerHTML = '<option value="">— Error loading invoices —</option>';
+    console.error('Invoice dropdown error:', e);
+  }
 }
 
 
 // Auto-fill InvoiceTotal when invoice is selected from dropdown
 document.getElementById('tc-invnum').addEventListener('change', function() {
-  var num = this.value;
-  var inv = invDb.find(function(i){ return i.number === num; });
-  if (inv && g('tc-invtotal')) {
-    g('tc-invtotal').value = inv.total || '';
+  var sel = this;
+  var opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.total && g('tc-invtotal')) {
+    g('tc-invtotal').value = opt.dataset.total;
   }
 });
 
